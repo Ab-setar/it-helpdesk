@@ -1,18 +1,16 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
 import Navbar from "./Navbar";
-import { Toaster } from "react-hot-toast";
+import Footer from "./Footer";
 
 const Layout = () => {
 	return (
-		<div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
+		<div className='min-h-screen flex flex-col'>
 			<Navbar />
-			<main className='pt-16'>
-				<div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-					<Outlet />
-				</div>
+			<main className='flex-grow container mx-auto px-4 py-8 mt-16'>
+				<Outlet />
 			</main>
-			<Toaster position='top-right' />
+			<Footer />
 		</div>
 	);
 };

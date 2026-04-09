@@ -1,121 +1,184 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React from "react";
+import {
+	BrowserRouter as Router,
+	Routes,
+	Route,
+	Navigate,
+} from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
+import Layout from "./components/layout/Layout";
 
-function App() {
-  const [count, setCount] = useState(0)
+// Auth Pages
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+// Dashboard Pages
+import Dashboard from "./pages/dashboard/Dashboard";
+import UserDashboard from "./pages/dashboard/UserDashboard";
 
-      <div className="ticks"></div>
+// Ticket Pages
+import SubmitTicket from "./pages/tickets/SubmitTicket";
+import EditTicket from "./pages/tickets/EditTicket";
+import ViewTicket from "./pages/tickets/ViewTicket";
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+// Profile Pages
+import Profile from "./pages/profile/Profile";
+import ChangePassword from "./pages/profile/ChangePassword";
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+// Admin Pages
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminSeniorOfficers from "./pages/admin/AdminSeniorOfficers";
+
+// Protected Route Component
+const ProtectedRoute = ({ children, allowedRoles = [] }) => {
+	const { user, loading } = useAuth();
+
+	if (loading) {
+		return (
+			<div className='flex justify-center items-center h-screen'>
+				Loading...
+			</div>
+		);
+	}
+
+	if (!user) {
+		return <Navigate to='/login' />;
+	}
+
+	if (allowedRoles.length && !allowedRoles.includes(user.role)) {
+		return <Navigate to='/dashboard' />;
+	}
+
+	return children;
+};
+
+function AppRoutes() {
+	return (
+		<Routes>
+			{/* Public Routes */}
+			<Route
+				path='/login'
+				element={<Login />}
+			/>
+			<Route
+				path='/register'
+				element={<Register />}
+			/>
+			<Route
+				path='/forgot-password'
+				element={<ForgotPassword />}
+			/>
+			<Route
+				path='/reset-password/:token'
+				element={<ResetPassword />}
+			/>
+
+			{/* Protected Routes */}
+			<Route element={<Layout />}>
+				<Route
+					path='/'
+					element={<Navigate to='/dashboard' />}
+				/>
+
+				{/* Dashboard */}
+				<Route
+					path='/dashboard'
+					element={
+						<ProtectedRoute allowedRoles={["admin", "senior_officer"]}>
+							<Dashboard />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path='/user-dashboard'
+					element={
+						<ProtectedRoute allowedRoles={["submitter"]}>
+							<UserDashboard />
+						</ProtectedRoute>
+					}
+				/>
+
+				{/* Tickets */}
+				<Route
+					path='/tickets/new'
+					element={
+						<ProtectedRoute allowedRoles={["submitter"]}>
+							<SubmitTicket />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path='/tickets/:id/edit'
+					element={
+						<ProtectedRoute>
+							<EditTicket />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path='/tickets/:id'
+					element={
+						<ProtectedRoute>
+							<ViewTicket />
+						</ProtectedRoute>
+					}
+				/>
+
+				{/* Profile */}
+				<Route
+					path='/profile'
+					element={
+						<ProtectedRoute>
+							<Profile />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path='/change-password'
+					element={
+						<ProtectedRoute>
+							<ChangePassword />
+						</ProtectedRoute>
+					}
+				/>
+
+				{/* Admin */}
+				<Route
+					path='/admin/users'
+					element={
+						<ProtectedRoute allowedRoles={["admin"]}>
+							<AdminUsers />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path='/admin/senior-officers'
+					element={
+						<ProtectedRoute allowedRoles={["admin"]}>
+							<AdminSeniorOfficers />
+						</ProtectedRoute>
+					}
+				/>
+			</Route>
+		</Routes>
+	);
 }
 
-export default App
+function App() {
+	return (
+		<Router>
+			<ThemeProvider>
+				<AuthProvider>
+					<Toaster position='top-right' />
+					<AppRoutes />
+				</AuthProvider>
+			</ThemeProvider>
+		</Router>
+	);
+}
+
+export default App;
