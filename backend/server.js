@@ -24,11 +24,13 @@ app.use(cors({
     credentials: true
 }));
 
-// Rate limiting
+// Rate limiting - FIXED: Convert string to number
 const limiter = rateLimit({
-    windowMs: process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000,
-    max: process.env.RATE_LIMIT_MAX || 100,
-    message: 'Too many requests from this IP, please try again later.'
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // Convert to number
+    max: parseInt(process.env.RATE_LIMIT_MAX) || 100, // Convert to number
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 app.use('/api/', limiter);
 
@@ -43,10 +45,14 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('MongoDB Connected Successfully'))
+    .then(() => console.log('✅ MongoDB Connected Successfully'))
     .catch(err => {
-        console.error('MongoDB Connection Error:', err);
-        process.exit(1);
+        console.error('❌ MongoDB Connection Error:', err);
+        console.log('\n💡 Troubleshooting Tips:');
+        console.log('1. Make sure MongoDB is installed and running');
+        console.log('2. Run "mongod" in a separate terminal to start MongoDB');
+        console.log('3. Or use MongoDB Atlas cloud database');
+        console.log('4. Check your MONGODB_URI in .env file\n');
     });
 
 // Routes
@@ -59,6 +65,7 @@ app.use('/api/upload', uploadRoutes);
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.status(200).json({ 
+        success: true,
         status: 'OK', 
         message: 'Server is running',
         timestamp: new Date().toISOString()
@@ -67,7 +74,7 @@ app.get('/api/health', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    console.error('❌ Error:', err.stack);
     res.status(err.status || 500).json({
         success: false,
         message: err.message || 'Internal Server Error',
@@ -77,11 +84,15 @@ app.use((err, req, res, next) => {
 
 // 404 handler
 app.use((req, res) => {
-    res.status(404).json({ success: false, message: 'Route not found' });
+    res.status(404).json({ 
+        success: false, 
+        message: `Route ${req.originalUrl} not found` 
+    });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = parseInt(process.env.PORT) || 5000;
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV}`);
+    console.log(`\n🚀 Server running on port ${PORT}`);
+    console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔗 API URL: http://localhost:${PORT}/api\n`);
 });
