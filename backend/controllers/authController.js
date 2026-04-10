@@ -61,7 +61,7 @@ exports.login = async (req, res) => {
 
         // Find user with password
         const user = await User.findOne({ email }).select('+password');
-        
+
         if (!user) {
             return res.status(401).json({
                 success: false,
@@ -71,7 +71,7 @@ exports.login = async (req, res) => {
 
         // Check password
         const isPasswordMatch = await user.comparePassword(password);
-        
+
         if (!isPasswordMatch) {
             return res.status(401).json({
                 success: false,
@@ -116,17 +116,18 @@ exports.forgotPassword = async (req, res) => {
 
         // Always return success for security (don't reveal if email exists)
         if (user) {
-            const token = crypto.randomBytes(32).toString('hex');
+            const rawToken = crypto.randomBytes(32).toString('hex');
+            const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
             const expiresAt = new Date(Date.now() + 3600000); // 1 hour
 
             await PasswordReset.findOneAndUpdate(
                 { email },
-                { token, expiresAt },
+                { token: hashedToken, expiresAt },
                 { upsert: true, new: true }
             );
 
-            const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
-            
+            const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${rawToken}`;
+
             await sendEmail({
                 to: email,
                 subject: 'Password Reset Request',
@@ -158,8 +159,9 @@ exports.resetPassword = async (req, res) => {
     try {
         const { token, newPassword } = req.body;
 
-        const resetRecord = await PasswordReset.findOne({ token });
-        
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+        const resetRecord = await PasswordReset.findOne({ token: hashedToken });
+
         if (!resetRecord || resetRecord.expiresAt < new Date()) {
             return res.status(400).json({
                 success: false,
@@ -168,7 +170,7 @@ exports.resetPassword = async (req, res) => {
         }
 
         const user = await User.findOne({ email: resetRecord.email });
-        
+
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -201,7 +203,7 @@ exports.changePassword = async (req, res) => {
         const user = await User.findById(req.user._id).select('+password');
 
         const isMatch = await user.comparePassword(currentPassword);
-        
+
         if (!isMatch) {
             return res.status(401).json({
                 success: false,
@@ -229,7 +231,7 @@ exports.changePassword = async (req, res) => {
 exports.getMe = async (req, res) => {
     try {
         const user = await User.findById(req.user._id).select('-password');
-        
+
         res.json({
             success: true,
             data: user
@@ -247,14 +249,14 @@ exports.getMe = async (req, res) => {
 exports.updateProfile = async (req, res) => {
     try {
         const { name, email, phoneNumber, preferences } = req.body;
-        
+
         const user = await User.findById(req.user._id);
-        
+
         if (name) user.name = name;
         if (email) user.email = email;
         if (phoneNumber) user.phoneNumber = phoneNumber;
         if (preferences) user.preferences = { ...user.preferences, ...preferences };
-        
+
         await user.save();
 
         res.json({
