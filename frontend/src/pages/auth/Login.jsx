@@ -6,6 +6,7 @@ import { Mail, Lock, LogIn } from "lucide-react";
 const Login = () => {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
+	const [rememberMe, setRememberMe] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const { login } = useAuth();
 	const navigate = useNavigate();
@@ -14,7 +15,7 @@ const Login = () => {
 		e.preventDefault();
 		setLoading(true);
 
-		const result = await login(email, password);
+		const result = await login(email, password, rememberMe);
 		if (result.success) {
 			const role = result.user?.role;
 			navigate(role === "submitter" ? "/user-dashboard" : "/dashboard");
@@ -100,6 +101,8 @@ const Login = () => {
 								id='remember-me'
 								name='remember-me'
 								type='checkbox'
+								checked={rememberMe}
+								onChange={(e) => setRememberMe(e.target.checked)}
 								className='h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded'
 							/>
 							<label

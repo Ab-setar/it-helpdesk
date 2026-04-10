@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import {
 	BrowserRouter as Router,
 	Routes,
@@ -10,28 +10,37 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import Layout from "./components/layout/Layout";
 
-// Auth Pages
+// Auth Pages — loaded eagerly since users land here first
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 
-// Dashboard Pages
-import Dashboard from "./pages/dashboard/Dashboard";
-import UserDashboard from "./pages/dashboard/UserDashboard";
+// All other pages — lazy loaded only when visited
+const Dashboard = lazy(() => import("./pages/dashboard/Dashboard"));
+const UserDashboard = lazy(() => import("./pages/dashboard/UserDashboard"));
+const SubmitTicket = lazy(() => import("./pages/tickets/SubmitTicket"));
+const EditTicket = lazy(() => import("./pages/tickets/EditTicket"));
+const ViewTicket = lazy(() => import("./pages/tickets/ViewTicket"));
+const Profile = lazy(() => import("./pages/profile/Profile"));
+const ChangePassword = lazy(() => import("./pages/profile/ChangePassword"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Ticket Pages
-import SubmitTicket from "./pages/tickets/SubmitTicket";
-import EditTicket from "./pages/tickets/EditTicket";
-import ViewTicket from "./pages/tickets/ViewTicket";
+// Loading fallback shown while a lazy page is being fetched
+const PageLoader = () => (
+	<div className='flex justify-center items-center h-64 text-gray-500'>
+		Loading...
+	</div>
+);
 
-// Profile Pages
-import Profile from "./pages/profile/Profile";
-import ChangePassword from "./pages/profile/ChangePassword";
-
-// Admin Pages
-import AdminUsers from "./pages/admin/AdminUsers";
-import AdminSeniorOfficers from "./pages/admin/AdminSeniorOfficers";
+// Redirects to the correct dashboard based on user role
+const RoleRedirect = () => {
+	const { user, loading } = useAuth();
+	if (loading) return <div className='flex justify-center items-center h-screen'>Loading...</div>;
+	if (!user) return <Navigate to='/login' />;
+	return <Navigate to={user.role === "submitter" ? "/user-dashboard" : "/dashboard"} />;
+};
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -50,7 +59,8 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 	}
 
 	if (allowedRoles.length && !allowedRoles.includes(user.role)) {
-		return <Navigate to='/dashboard' />;
+		const fallback = user.role === "submitter" ? "/user-dashboard" : "/dashboard";
+		return <Navigate to={fallback} />;
 	}
 
 	return children;
@@ -58,6 +68,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
 function AppRoutes() {
 	return (
+		<Suspense fallback={<PageLoader />}>
 		<Routes>
 			{/* Public Routes */}
 			<Route
@@ -81,7 +92,7 @@ function AppRoutes() {
 			<Route element={<Layout />}>
 				<Route
 					path='/'
-					element={<Navigate to='/dashboard' />}
+					element={<RoleRedirect />}
 				/>
 
 				{/* Dashboard */}
@@ -164,7 +175,11 @@ function AppRoutes() {
 					}
 				/>
 			</Route>
+
+			{/* 404 - catch all unmatched routes */}
+			<Route path='*' element={<NotFound />} />
 		</Routes>
+		</Suspense>
 	);
 }
 

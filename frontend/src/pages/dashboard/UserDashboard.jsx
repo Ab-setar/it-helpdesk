@@ -24,14 +24,33 @@ const UserDashboard = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this ticket?')) return;
-    try {
-      await ticketAPI.delete(id);
-      toast.success('Ticket deleted successfully');
-      fetchTickets();
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to delete ticket');
-    }
+    toast((t) => (
+      <div className='flex flex-col gap-2'>
+        <p className='font-medium'>Delete this ticket?</p>
+        <p className='text-sm text-gray-500'>This action cannot be undone.</p>
+        <div className='flex gap-2'>
+          <button
+            onClick={async () => {
+              toast.dismiss(t.id);
+              try {
+                await ticketAPI.delete(id);
+                toast.success('Ticket deleted successfully');
+                fetchTickets();
+              } catch (error) {
+                toast.error(error.response?.data?.message || 'Failed to delete ticket');
+              }
+            }}
+            className='bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1 rounded'>
+            Delete
+          </button>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className='bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm px-3 py-1 rounded'>
+            Cancel
+          </button>
+        </div>
+      </div>
+    ), { duration: Infinity });
   };
 
   if (loading) {

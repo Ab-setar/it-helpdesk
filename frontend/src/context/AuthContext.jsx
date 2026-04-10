@@ -9,7 +9,9 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }) => {
 	const [user, setUser] = useState(null);
 	const [loading, setLoading] = useState(true);
-	const [token, setToken] = useState(localStorage.getItem("token"));
+	const [token, setToken] = useState(
+		localStorage.getItem("token") || sessionStorage.getItem("token")
+	);
 
 	useEffect(() => {
 		if (token) {
@@ -33,12 +35,17 @@ export const AuthProvider = ({ children }) => {
 		}
 	};
 
-	const login = async (email, password) => {
+	const login = async (email, password, rememberMe = true) => {
 		try {
 			const response = await authAPI.login({ email, password });
 			const { token, ...userData } = response.data.data;
-			localStorage.setItem("token", token);
-			localStorage.setItem("user", JSON.stringify(userData));
+
+			// rememberMe = localStorage (persists after browser close)
+			// otherwise = sessionStorage (clears when browser closes)
+			const storage = rememberMe ? localStorage : sessionStorage;
+			storage.setItem("token", token);
+			storage.setItem("user", JSON.stringify(userData));
+
 			setToken(token);
 			setUser(userData);
 			toast.success("Login successful!");
@@ -70,6 +77,8 @@ export const AuthProvider = ({ children }) => {
 	const logout = () => {
 		localStorage.removeItem("token");
 		localStorage.removeItem("user");
+		sessionStorage.removeItem("token");
+		sessionStorage.removeItem("user");
 		setToken(null);
 		setUser(null);
 		toast.success("Logged out successfully");
