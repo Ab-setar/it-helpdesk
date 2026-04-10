@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }) => {
 			setToken(token);
 			setUser(newUser);
 			toast.success("Registration successful!");
-			return { success: true };
+			return { success: true, user: newUser };
 		} catch (error) {
 			const message = error.response?.data?.message || "Registration failed";
 			toast.error(message);

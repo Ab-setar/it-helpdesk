@@ -42,13 +42,14 @@ const Register = () => {
 		if (!validateForm()) return;
 
 		setLoading(true);
-		const result = await register(
-			formData.name,
-			formData.email,
-			formData.password,
-		);
+		const result = await register({
+			name: formData.name,
+			email: formData.email,
+			password: formData.password,
+			confirmPassword: formData.confirmPassword,
+		});
 		if (result.success) {
-			navigate("/dashboard");
+			navigate(result.user?.role === "submitter" ? "/user-dashboard" : "/dashboard");
 		}
 		setLoading(false);
 	};
