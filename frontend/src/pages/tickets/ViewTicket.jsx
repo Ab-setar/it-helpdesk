@@ -21,8 +21,9 @@ const ViewTicket = () => {
   const fetchTicket = async () => {
     try {
       const response = await ticketAPI.getOne(id);
-      setTicket(response.data.data);
-      setComments(response.data.comments || []);
+      const { ticket, comments } = response.data.data;
+      setTicket(ticket);
+      setComments(comments || []);
     } catch (error) {
       toast.error('Failed to load ticket');
       navigate('/dashboard');
@@ -37,10 +38,10 @@ const ViewTicket = () => {
     
     setSubmitting(true);
     try {
-      await ticketAPI.addComment(id, { commentText });
+      const response = await ticketAPI.addComment(id, { commentText });
+      setComments(prev => [...prev, response.data.data]);
       toast.success('Comment added');
       setCommentText('');
-      fetchTicket();
     } catch (error) {
       toast.error('Failed to add comment');
     } finally {
