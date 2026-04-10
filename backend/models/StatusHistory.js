@@ -24,4 +24,7 @@ const statusHistorySchema = new mongoose.Schema({
     timestamps: true
 });
 
+// Index for fetching history of a specific ticket
+statusHistorySchema.index({ ticketId: 1, createdAt: -1 });
+
 module.exports = mongoose.model('StatusHistory', statusHistorySchema);

@@ -31,4 +31,8 @@ const notificationSchema = new mongoose.Schema({
     timestamps: true
 });
 
+// Index for fetching a user's notifications sorted by newest
+notificationSchema.index({ userId: 1, createdAt: -1 });
+notificationSchema.index({ userId: 1, isRead: 1 });
+
 module.exports = mongoose.model('Notification', notificationSchema);
