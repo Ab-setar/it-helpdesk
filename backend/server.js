@@ -24,13 +24,24 @@ app.use(cors({
     credentials: true
 }));
 
-// Rate limiting
+// Rate limiting — global
 const limiter = rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
     max: parseInt(process.env.RATE_LIMIT_MAX) || 100,
     message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', limiter);
+
+// Stricter rate limiting for sensitive auth endpoints
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10,                   // 10 attempts per window
+    message: 'Too many attempts from this IP, please try again after 15 minutes.',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
 
 // Body parsing middleware
 app.use(express.json());
