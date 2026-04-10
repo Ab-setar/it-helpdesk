@@ -16,7 +16,8 @@ const Login = () => {
 
 		const result = await login(email, password);
 		if (result.success) {
-			navigate("/dashboard");
+			const role = result.user?.role;
+			navigate(role === "submitter" ? "/user-dashboard" : "/dashboard");
 		}
 		setLoading(false);
 	};
