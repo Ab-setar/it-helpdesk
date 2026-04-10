@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
@@ -21,6 +21,18 @@ const Navbar = () => {
 	const navigate = useNavigate();
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 	const [dropdownOpen, setDropdownOpen] = useState(false);
+	const dropdownRef = useRef(null);
+
+	// Close dropdown when clicking outside
+	useEffect(() => {
+		const handleClickOutside = (e) => {
+			if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+				setDropdownOpen(false);
+			}
+		};
+		document.addEventListener('mousedown', handleClickOutside);
+		return () => document.removeEventListener('mousedown', handleClickOutside);
+	}, []);
 
 	const handleLogout = () => {
 		logout();
@@ -93,7 +105,7 @@ const Navbar = () => {
 
 						{/* User Menu */}
 						{user && (
-							<div className='relative'>
+							<div className='relative' ref={dropdownRef}>
 								<button
 									onClick={() => setDropdownOpen(!dropdownOpen)}
 									className='flex items-center space-x-2 focus:outline-none'>

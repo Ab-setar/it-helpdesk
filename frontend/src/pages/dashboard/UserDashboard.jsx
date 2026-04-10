@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ticketAPI } from '../../services/api';
+import { getStatusBadge } from '../../utils/badges';
 import toast from 'react-hot-toast';
 
 const UserDashboard = () => {
@@ -31,15 +32,6 @@ const UserDashboard = () => {
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to delete ticket');
     }
-  };
-
-  const getStatusBadge = (status) => {
-    const badges = {
-      'Open': 'bg-yellow-100 text-yellow-800',
-      'In Progress': 'bg-blue-100 text-blue-800',
-      'Closed': 'bg-green-100 text-green-800',
-    };
-    return badges[status] || 'bg-gray-100 text-gray-800';
   };
 
   if (loading) {
