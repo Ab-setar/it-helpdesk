@@ -335,11 +335,15 @@ exports.addComment = async (req, res) => {
         }
 
         for (const userId of notificationUsers) {
+            const preview = commentText.length > 100
+                ? `${commentText.substring(0, 100)}...`
+                : commentText;
+
             await Notification.create({
                 userId,
                 type: 'comment',
                 title: `New comment on ticket #${ticket.ticketId}`,
-                message: `${req.user.name} added a comment: ${commentText.substring(0, 100)}...`,
+                message: `${req.user.name} added a comment: ${preview}`,
                 relatedId: ticket._id
             });
         }
