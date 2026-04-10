@@ -18,17 +18,18 @@ exports.createTicket = async (req, res) => {
             submitterId: req.user._id
         });
 
-        // Create notification for senior officers
-        const seniorOfficers = await User.find({ role: 'senior_officer' });
+        // Notify all senior officers in a single DB operation
+        const seniorOfficers = await User.find({ role: 'senior_officer' }).select('_id');
 
-        for (const officer of seniorOfficers) {
-            await Notification.create({
+        if (seniorOfficers.length > 0) {
+            const notifications = seniorOfficers.map(officer => ({
                 userId: officer._id,
                 type: 'ticket_update',
                 title: 'New Ticket Created',
                 message: `New ticket #${ticket.ticketId} has been created`,
                 relatedId: ticket._id
-            });
+            }));
+            await Notification.insertMany(notifications);
         }
 
         res.status(201).json({

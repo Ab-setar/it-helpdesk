@@ -51,7 +51,7 @@ export const authAPI = {
 // Ticket API
 export const ticketAPI = {
   create: (data) => api.post('/tickets', data),
-  getAll: () => api.get('/tickets'),
+  getAll: (params = {}) => api.get('/tickets', { params }),
   getOne: (id) => api.get(`/tickets/${id}`),
   update: (id, data) => api.put(`/tickets/${id}`, data),
   delete: (id) => api.delete(`/tickets/${id}`),
@@ -60,14 +60,13 @@ export const ticketAPI = {
 
 // Admin API
 export const adminAPI = {
-  getUsers: () => api.get('/admin/users'),
-  getSeniorOfficers: () => api.get('/admin/senior-officers'),
-  registerSeniorOfficer: (data) => api.post('/admin/senior-officers', data),
-  deleteUser: (id) => api.delete(`/admin/users/${id}`),
-  getTeams: () => api.get('/admin/teams'),
-  getAvailableTeams: () => api.get('/admin/teams/available'),
-  createTeam: (data) => api.post('/admin/teams', data),
-  updateIssueMapping: (issueType, teamId) => api.put(`/admin/issue-mapping/${issueType}`, { teamId }),
+  // Users
+  getUsers: () => api.get('/users'),
+  deleteUser: (id) => api.delete(`/users/${id}`),
+
+  // Senior Officers
+  getSeniorOfficers: () => api.get('/users/senior-officers'),
+  registerSeniorOfficer: (data) => api.post('/users/senior-officer', data),
 };
 
 export default api;
