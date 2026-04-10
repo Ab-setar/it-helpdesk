@@ -248,12 +248,13 @@ exports.getMe = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
     try {
-        const { name, email, phoneNumber, preferences } = req.body;
+        // Email is intentionally excluded — changing email requires
+        // a separate verified flow to prevent account takeover
+        const { name, phoneNumber, preferences } = req.body;
 
         const user = await User.findById(req.user._id);
 
         if (name) user.name = name;
-        if (email) user.email = email;
         if (phoneNumber) user.phoneNumber = phoneNumber;
         if (preferences) user.preferences = { ...user.preferences, ...preferences };
 
