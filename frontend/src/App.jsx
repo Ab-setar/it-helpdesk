@@ -22,6 +22,7 @@ const UserDashboard = lazy(() => import("./pages/dashboard/UserDashboard"));
 const SubmitTicket = lazy(() => import("./pages/tickets/SubmitTicket"));
 const EditTicket = lazy(() => import("./pages/tickets/EditTicket"));
 const ViewTicket = lazy(() => import("./pages/tickets/ViewTicket"));
+const ManageTicket = lazy(() => import("./pages/tickets/ManageTicket"));
 const Profile = lazy(() => import("./pages/profile/Profile"));
 const ChangePassword = lazy(() => import("./pages/profile/ChangePassword"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
@@ -128,6 +129,14 @@ function AppRoutes() {
 					element={
 						<ProtectedRoute>
 							<EditTicket />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path='/tickets/:id/manage'
+					element={
+						<ProtectedRoute allowedRoles={["admin", "senior_officer"]}>
+							<ManageTicket />
 						</ProtectedRoute>
 					}
 				/>

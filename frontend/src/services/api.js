@@ -67,6 +67,11 @@ export const adminAPI = {
   // Senior Officers
   getSeniorOfficers: () => api.get('/users/senior-officers'),
   registerSeniorOfficer: (data) => api.post('/users/senior-officer', data),
+
+  // Teams
+  getTeams: () => api.get('/users/teams'),
+  createTeam: (data) => api.post('/users/teams', data),
+  getOfficersByTeam: (teamId) => api.get(`/users/teams/${teamId}/officers`),
 };
 
 export default api;
