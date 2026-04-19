@@ -69,14 +69,15 @@ ticketSchema.index({ teamId: 1, status: 1 });         // senior officer filterin
 ticketSchema.index({ isDeleted: 1, createdAt: -1 });  // default listing sorted by newest
 ticketSchema.index({ status: 1, isDeleted: 1 });      // admin filtering all tickets by status
 
-// Generate ticket ID before saving
+// Generate a unique ticket ID atomically before saving
 ticketSchema.pre('save', async function (next) {
     if (!this.ticketId) {
+        const Counter = require('./Counter');
         const date = new Date();
         const year = date.getFullYear().toString().slice(-2);
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const count = await mongoose.model('Ticket').countDocuments();
-        this.ticketId = `TKT-${year}${month}-${(count + 1).toString().padStart(4, '0')}`;
+        const seq = await Counter.getNext('ticket');
+        this.ticketId = `TKT-${year}${month}-${seq.toString().padStart(4, '0')}`;
     }
     next();
 });

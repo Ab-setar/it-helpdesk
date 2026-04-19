@@ -25,6 +25,7 @@ const ViewTicket = lazy(() => import("./pages/tickets/ViewTicket"));
 const Profile = lazy(() => import("./pages/profile/Profile"));
 const ChangePassword = lazy(() => import("./pages/profile/ChangePassword"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminSeniorOfficers = lazy(() => import("./pages/admin/AdminSeniorOfficers"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading fallback shown while a lazy page is being fetched
