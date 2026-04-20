@@ -70,7 +70,7 @@ ticketSchema.index({ isDeleted: 1, createdAt: -1 });  // default listing sorted 
 ticketSchema.index({ status: 1, isDeleted: 1 });      // admin filtering all tickets by status
 
 // Generate a unique ticket ID atomically before saving
-ticketSchema.pre('save', async function (next) {
+ticketSchema.pre('save', async function () {
     if (!this.ticketId) {
         const Counter = require('./Counter');
         const date = new Date();
@@ -79,7 +79,6 @@ ticketSchema.pre('save', async function (next) {
         const seq = await Counter.getNext('ticket');
         this.ticketId = `TKT-${year}${month}-${seq.toString().padStart(4, '0')}`;
     }
-    next();
 });
 
 module.exports = mongoose.model('Ticket', ticketSchema);

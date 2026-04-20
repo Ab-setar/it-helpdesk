@@ -20,7 +20,20 @@ const app = express();
 // Security middleware
 app.use(helmet());
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+        const allowed = [
+            process.env.FRONTEND_URL,
+            'http://localhost:3000',
+            'http://localhost:5173',
+        ].filter(Boolean);
+
+        // Allow requests with no origin (mobile apps, curl, Postman)
+        if (!origin || allowed.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error(`CORS blocked: ${origin}`));
+        }
+    },
     credentials: true
 }));
 
