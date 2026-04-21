@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import {
 	Menu, X, Sun, Moon, User, LogOut,
-	Ticket, LayoutDashboard, Shield, Users, KeyRound,
+	LayoutDashboard, Shield, Users, KeyRound, Ticket,
 } from "lucide-react";
 
 const Navbar = () => {
@@ -65,11 +65,20 @@ const Navbar = () => {
 
 					{/* Logo */}
 					<Link to='/' className='flex items-center gap-2.5 shrink-0'>
-						<div className='w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center'>
-							<Ticket className='h-4 w-4 text-white' />
+						<div className='w-8 h-8 bg-white rounded-lg flex items-center justify-center overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700'>
+							<img
+								src='https://ess.gov.et/wp-content/uploads/2024/06/Group-163248.svg'
+								alt='ESS Logo'
+								className='w-7 h-7 object-contain'
+								onError={(e) => {
+									e.target.style.display = 'none';
+									e.target.nextSibling.style.display = 'block';
+								}}
+							/>
+							<span style={{ display: 'none' }} className='text-indigo-600 font-bold text-xs'>ESS</span>
 						</div>
 						<span className='font-bold text-lg text-gray-900 dark:text-white tracking-tight'>
-							HelpDesk <span className='text-indigo-600'>Pro</span>
+							ESS <span className='text-indigo-600'>Helpdesk</span>
 						</span>
 					</Link>
 

@@ -4,6 +4,16 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { sendEmail } = require('../utils/emailService');
 
+// Safe error response — never expose internals in production
+const serverError = (res, error) => {
+    console.error(error);
+    res.status(500).json({
+        success: false,
+        message: 'Server error',
+        ...(process.env.NODE_ENV === 'development' && { error: error.message })
+    });
+};
+
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_EXPIRE
@@ -14,44 +24,21 @@ exports.register = async (req, res) => {
     try {
         const { name, email, password, phoneNumber } = req.body;
 
-        // Check if user exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-            return res.status(400).json({
-                success: false,
-                message: 'User already exists with this email'
-            });
+            return res.status(400).json({ success: false, message: 'User already exists with this email' });
         }
 
-        // Create user
-        const user = await User.create({
-            name,
-            email,
-            password,
-            phoneNumber,
-            role: 'submitter'
-        });
-
+        const user = await User.create({ name, email, password, phoneNumber, role: 'submitter' });
         const token = generateToken(user._id);
 
         res.status(201).json({
             success: true,
             message: 'User registered successfully',
-            data: {
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                token
-            }
+            data: { _id: user._id, name: user.name, email: user.email, role: user.role, token }
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error: error.message
-        });
+        serverError(res, error);
     }
 };
 
@@ -59,24 +46,14 @@ exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Find user with password
         const user = await User.findOne({ email }).select('+password');
-
         if (!user) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid credentials'
-            });
+            return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
 
-        // Check password
         const isPasswordMatch = await user.comparePassword(password);
-
         if (!isPasswordMatch) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid credentials'
-            });
+            return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
 
         // Update last login without triggering pre-save hook
@@ -99,12 +76,7 @@ exports.login = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error: error.message
-        });
+        serverError(res, error);
     }
 };
 
@@ -113,11 +85,10 @@ exports.forgotPassword = async (req, res) => {
         const { email } = req.body;
         const user = await User.findOne({ email });
 
-        // Always return success for security (don't reveal if email exists)
         if (user) {
             const rawToken = crypto.randomBytes(32).toString('hex');
             const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
-            const expiresAt = new Date(Date.now() + 3600000); // 1 hour
+            const expiresAt = new Date(Date.now() + 3600000);
 
             await PasswordReset.findOneAndUpdate(
                 { email },
@@ -127,7 +98,8 @@ exports.forgotPassword = async (req, res) => {
 
             const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${rawToken}`;
 
-            await sendEmail({
+            // Fire-and-forget — don't block response on email
+            sendEmail({
                 to: email,
                 subject: 'Password Reset Request',
                 html: `
@@ -137,20 +109,16 @@ exports.forgotPassword = async (req, res) => {
                     <p>This link expires in 1 hour.</p>
                     <p>If you didn't request this, please ignore this email.</p>
                 `
-            });
+            }).catch(err => console.error('Password reset email failed:', err));
         }
 
+        // Always return success — don't reveal if email exists
         res.json({
             success: true,
             message: 'If an account exists with this email, a reset link has been sent'
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error: error.message
-        });
+        serverError(res, error);
     }
 };
 
@@ -162,37 +130,22 @@ exports.resetPassword = async (req, res) => {
         const resetRecord = await PasswordReset.findOne({ token: hashedToken });
 
         if (!resetRecord || resetRecord.expiresAt < new Date()) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid or expired reset token'
-            });
+            return res.status(400).json({ success: false, message: 'Invalid or expired reset token' });
         }
 
         const user = await User.findOne({ email: resetRecord.email });
-
         if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
+            return res.status(404).json({ success: false, message: 'User not found' });
         }
 
         user.password = newPassword;
         await user.save();
 
-        await PasswordReset.deleteOne({ token });
+        await PasswordReset.deleteOne({ token: hashedToken });
 
-        res.json({
-            success: true,
-            message: 'Password reset successfully'
-        });
+        res.json({ success: true, message: 'Password reset successfully' });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error: error.message
-        });
+        serverError(res, error);
     }
 };
 
@@ -202,55 +155,31 @@ exports.changePassword = async (req, res) => {
         const user = await User.findById(req.user._id).select('+password');
 
         const isMatch = await user.comparePassword(currentPassword);
-
         if (!isMatch) {
-            return res.status(401).json({
-                success: false,
-                message: 'Current password is incorrect'
-            });
+            return res.status(401).json({ success: false, message: 'Current password is incorrect' });
         }
 
         user.password = newPassword;
         await user.save();
 
-        res.json({
-            success: true,
-            message: 'Password changed successfully'
-        });
+        res.json({ success: true, message: 'Password changed successfully' });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error: error.message
-        });
+        serverError(res, error);
     }
 };
 
 exports.getMe = async (req, res) => {
     try {
         const user = await User.findById(req.user._id).select('-password');
-
-        res.json({
-            success: true,
-            data: user
-        });
+        res.json({ success: true, data: user });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error: error.message
-        });
+        serverError(res, error);
     }
 };
 
 exports.updateProfile = async (req, res) => {
     try {
-        // Email is intentionally excluded — changing email requires
-        // a separate verified flow to prevent account takeover
         const { name, phoneNumber, preferences } = req.body;
-
         const user = await User.findById(req.user._id);
 
         if (name) user.name = name;
@@ -272,11 +201,6 @@ exports.updateProfile = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error: error.message
-        });
+        serverError(res, error);
     }
 };

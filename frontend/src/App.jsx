@@ -28,6 +28,7 @@ const ChangePassword = lazy(() => import("./pages/profile/ChangePassword"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminSeniorOfficers = lazy(() => import("./pages/admin/AdminSeniorOfficers"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Home = lazy(() => import("./pages/Home"));
 
 // Loading fallback shown while a lazy page is being fetched
 const PageLoader = () => (
@@ -73,10 +74,8 @@ function AppRoutes() {
 		<Suspense fallback={<PageLoader />}>
 		<Routes>
 			{/* Public Routes */}
-			<Route
-				path='/login'
-				element={<Login />}
-			/>
+			<Route path='/' element={<Home />} />
+			<Route path='/login' element={<Login />} />
 			<Route
 				path='/register'
 				element={<Register />}
@@ -92,10 +91,6 @@ function AppRoutes() {
 
 			{/* Protected Routes */}
 			<Route element={<Layout />}>
-				<Route
-					path='/'
-					element={<RoleRedirect />}
-				/>
 
 				{/* Dashboard */}
 				<Route
