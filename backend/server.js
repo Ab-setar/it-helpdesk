@@ -17,24 +17,19 @@ const uploadRoutes = require('./routes/uploadRoutes');
 
 const app = express();
 
-// Security middleware
-app.use(helmet());
+// Security middleware — CORS must come before everything
 app.use(cors({
-    origin: (origin, callback) => {
-        const allowed = [
-            process.env.FRONTEND_URL,
-            'http://localhost:3000',
-            'http://localhost:5173',
-        ].filter(Boolean);
+    origin: true, // reflect the request origin in development
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
-        // Allow requests with no origin (mobile apps, curl, Postman)
-        if (!origin || allowed.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error(`CORS blocked: ${origin}`));
-        }
-    },
-    credentials: true
+// Handle preflight requests explicitly
+app.options('/{*path}', cors());
+
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 
 // Rate limiting — global
@@ -47,8 +42,8 @@ app.use('/api/', limiter);
 
 // Stricter rate limiting for sensitive auth endpoints
 const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10,                   // 10 attempts per window
+    windowMs: 15 * 60 * 1000,
+    max: process.env.NODE_ENV === 'development' ? 50 : 10,
     message: 'Too many attempts from this IP, please try again after 15 minutes.',
     standardHeaders: true,
     legacyHeaders: false,

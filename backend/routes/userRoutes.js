@@ -51,15 +51,27 @@ router.post('/senior-officer', protect, adminOnly, async (req, res) => {
     try {
         const { name, email, password, phoneNumber, teamId } = req.body;
 
-        const existingOfficer = await User.findOne({ teamId, role: 'senior_officer' });
-        if (existingOfficer) {
-            return res.status(400).json({
-                success: false,
-                message: 'This team already has a senior officer'
-            });
+        // Convert empty string to null for ObjectId field
+        const resolvedTeamId = teamId && teamId.trim() !== '' ? teamId : null;
+
+        if (resolvedTeamId) {
+            const existingOfficer = await User.findOne({ teamId: resolvedTeamId, role: 'senior_officer' });
+            if (existingOfficer) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'This team already has a senior officer'
+                });
+            }
         }
 
-        const user = await User.create({ name, email, password, phoneNumber, role: 'senior_officer', teamId });
+        const user = await User.create({
+            name,
+            email,
+            password,
+            phoneNumber: phoneNumber || null,
+            role: 'senior_officer',
+            teamId: resolvedTeamId
+        });
 
         res.status(201).json({
             success: true,
