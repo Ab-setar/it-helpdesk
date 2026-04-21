@@ -1,33 +1,33 @@
 import React, { useState, useEffect } from "react";
 import { adminAPI } from "../../services/api";
 import toast from "react-hot-toast";
-import { Shield, Plus, X, Eye, EyeOff } from "lucide-react";
+import { Shield, Plus, X, Eye, EyeOff, Users } from "lucide-react";
 
 const AdminSeniorOfficers = () => {
 	const [officers, setOfficers] = useState([]);
+	const [teams, setTeams] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [showForm, setShowForm] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
 	const [showPassword, setShowPassword] = useState(false);
 	const [formData, setFormData] = useState({
-		name: "",
-		email: "",
-		password: "",
-		phoneNumber: "",
-		teamId: "",
+		name: "", email: "", password: "", phoneNumber: "", teamId: "",
 	});
-	const [teams, setTeams] = useState([]);
 
 	useEffect(() => {
-		fetchOfficers();
+		fetchData();
 	}, []);
 
-	const fetchOfficers = async () => {
+	const fetchData = async () => {
 		try {
-			const response = await adminAPI.getSeniorOfficers();
-			setOfficers(response.data.data);
-		} catch (error) {
-			toast.error("Failed to load senior officers");
+			const [officersRes, teamsRes] = await Promise.all([
+				adminAPI.getSeniorOfficers(),
+				adminAPI.getTeams(),
+			]);
+			setOfficers(officersRes.data.data);
+			setTeams(teamsRes.data.data);
+		} catch {
+			toast.error("Failed to load data");
 		} finally {
 			setLoading(false);
 		}
@@ -39,13 +39,17 @@ const AdminSeniorOfficers = () => {
 
 	const handleCreate = async (e) => {
 		e.preventDefault();
+		if (!formData.teamId) {
+			toast.error("Please select a department team");
+			return;
+		}
 		setSubmitting(true);
 		try {
 			await adminAPI.registerSeniorOfficer(formData);
 			toast.success("Senior officer created successfully");
 			setShowForm(false);
 			setFormData({ name: "", email: "", password: "", phoneNumber: "", teamId: "" });
-			fetchOfficers();
+			fetchData();
 		} catch (error) {
 			toast.error(error.response?.data?.message || "Failed to create senior officer");
 		} finally {
@@ -53,28 +57,28 @@ const AdminSeniorOfficers = () => {
 		}
 	};
 
-	const handleDelete = (officerId) => {
+	const handleDelete = (officerId, officerName) => {
 		toast((t) => (
 			<div className='flex flex-col gap-2'>
-				<p className='font-medium'>Remove this senior officer?</p>
+				<p className='font-medium'>Remove {officerName}?</p>
+				<p className='text-sm text-gray-500'>They will lose access to the system.</p>
 				<div className='flex gap-2'>
 					<button
 						onClick={async () => {
 							toast.dismiss(t.id);
 							try {
 								await adminAPI.deleteUser(officerId);
-								toast.success("Senior officer removed");
-								fetchOfficers();
+								toast.success("Officer removed");
+								fetchData();
 							} catch (error) {
-								toast.error(error.response?.data?.message || "Failed to remove officer");
+								toast.error(error.response?.data?.message || "Failed to remove");
 							}
 						}}
-						className='bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1 rounded'>
+						className='bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1.5 rounded-lg font-medium'>
 						Remove
 					</button>
-					<button
-						onClick={() => toast.dismiss(t.id)}
-						className='bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm px-3 py-1 rounded'>
+					<button onClick={() => toast.dismiss(t.id)}
+						className='bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm px-3 py-1.5 rounded-lg font-medium'>
 						Cancel
 					</button>
 				</div>
@@ -82,14 +86,27 @@ const AdminSeniorOfficers = () => {
 		), { duration: Infinity });
 	};
 
-	if (loading) return <div className='flex justify-center items-center h-64'>Loading...</div>;
+	// Group officers by team for display
+	const officersByTeam = teams.map(team => ({
+		team,
+		officer: officers.find(o => o.teamId?._id === team._id)
+	}));
+
+	if (loading) return (
+		<div className='flex items-center justify-center h-64'>
+			<div className='w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin' />
+		</div>
+	);
 
 	return (
-		<div>
-			<div className='flex justify-between items-center mb-6'>
-				<div className='flex items-center space-x-2'>
-					<Shield className='h-7 w-7 text-indigo-600' />
-					<h1 className='text-3xl font-bold'>Senior Officers</h1>
+		<div className='space-y-6'>
+			{/* Header */}
+			<div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+				<div>
+					<h1 className='text-2xl font-bold text-gray-900 dark:text-white'>Department Officers</h1>
+					<p className='text-sm text-gray-500 dark:text-gray-400 mt-1'>
+						Each department has one responsible senior officer
+					</p>
 				</div>
 				<button onClick={() => setShowForm(!showForm)} className='btn-primary'>
 					{showForm ? <X className='h-4 w-4 mr-2' /> : <Plus className='h-4 w-4 mr-2' />}
@@ -99,9 +116,40 @@ const AdminSeniorOfficers = () => {
 
 			{/* Create form */}
 			{showForm && (
-				<div className='card mb-6'>
-					<h2 className='text-lg font-semibold mb-4'>Create Senior Officer</h2>
+				<div className='card'>
+					<h2 className='text-base font-semibold text-gray-900 dark:text-white mb-4'>
+						Assign Officer to Department
+					</h2>
 					<form onSubmit={handleCreate} className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+						{/* Department — required, shown first */}
+						<div className='md:col-span-2'>
+							<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+								Department (Team) *
+							</label>
+							<select
+								name='teamId'
+								value={formData.teamId}
+								onChange={handleChange}
+								className='input'
+								required>
+								<option value=''>— Select a department —</option>
+								{teams.map(team => {
+									const hasOfficer = officers.some(o => o.teamId?._id === team._id);
+									return (
+										<option key={team._id} value={team._id} disabled={hasOfficer}>
+											{team.teamName} {hasOfficer ? '(already assigned)' : ''}
+										</option>
+									);
+								})}
+							</select>
+							{formData.teamId && (
+								<p className='mt-1 text-xs text-indigo-600'>
+									This officer will only see tickets assigned to the{' '}
+									<strong>{teams.find(t => t._id === formData.teamId)?.teamName}</strong> department
+								</p>
+							)}
+						</div>
+
 						<div>
 							<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>Full Name *</label>
 							<input name='name' value={formData.name} onChange={handleChange} className='input' placeholder='Full name' required />
@@ -119,7 +167,7 @@ const AdminSeniorOfficers = () => {
 									value={formData.password}
 									onChange={handleChange}
 									className='input pr-10'
-									placeholder='Password'
+									placeholder='Min. 6 characters'
 									required
 									minLength={6}
 								/>
@@ -135,54 +183,70 @@ const AdminSeniorOfficers = () => {
 						</div>
 						<div className='md:col-span-2'>
 							<button type='submit' disabled={submitting} className='btn-primary'>
-								{submitting ? "Creating..." : "Create Senior Officer"}
+								{submitting ? "Creating..." : "Create Officer"}
 							</button>
 						</div>
 					</form>
 				</div>
 			)}
 
-			{/* Officers list */}
-			<div className='card p-0 overflow-hidden'>
-				<div className='overflow-x-auto'>
-					<table className='w-full'>
-						<thead className='bg-gray-50 dark:bg-gray-700'>
-							<tr>
-								<th className='text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400'>Name</th>
-								<th className='text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400'>Email</th>
-								<th className='text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400'>Phone</th>
-								<th className='text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400'>Team</th>
-								<th className='text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400'>Actions</th>
-							</tr>
-						</thead>
-						<tbody className='divide-y divide-gray-200 dark:divide-gray-700'>
-							{officers.map((officer) => (
-								<tr key={officer._id} className='hover:bg-gray-50 dark:hover:bg-gray-700/50'>
-									<td className='py-3 px-4 font-medium text-gray-900 dark:text-white'>{officer.name}</td>
-									<td className='py-3 px-4 text-gray-600 dark:text-gray-400'>{officer.email}</td>
-									<td className='py-3 px-4 text-gray-600 dark:text-gray-400'>{officer.phoneNumber || "—"}</td>
-									<td className='py-3 px-4 text-gray-600 dark:text-gray-400'>
-										{officer.teamId?.teamName || <span className='text-yellow-600 text-sm'>No team assigned</span>}
-									</td>
-									<td className='py-3 px-4'>
-										<button
-											onClick={() => handleDelete(officer._id)}
-											className='text-red-600 hover:text-red-800 text-sm hover:underline'>
-											Remove
-										</button>
-									</td>
-								</tr>
-							))}
-							{officers.length === 0 && (
-								<tr>
-									<td colSpan={5} className='py-8 text-center text-gray-500'>
-										No senior officers yet. Add one above.
-									</td>
-								</tr>
+			{/* Department cards */}
+			<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+				{officersByTeam.map(({ team, officer }) => (
+					<div key={team._id} className='card'>
+						<div className='flex items-start justify-between mb-3'>
+							<div className='flex items-center gap-2'>
+								<div className='w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center'>
+									<Shield className='h-5 w-5 text-indigo-600 dark:text-indigo-400' />
+								</div>
+								<div>
+									<p className='font-semibold text-gray-900 dark:text-white text-sm'>{team.teamName}</p>
+									<p className='text-xs text-gray-400'>Department</p>
+								</div>
+							</div>
+							{officer ? (
+								<span className='badge bg-green-100 text-green-700'>Active</span>
+							) : (
+								<span className='badge bg-yellow-100 text-yellow-700'>Vacant</span>
 							)}
-						</tbody>
-					</table>
-				</div>
+						</div>
+
+						<p className='text-xs text-gray-500 dark:text-gray-400 mb-4'>{team.description}</p>
+
+						{officer ? (
+							<div className='border-t border-gray-100 dark:border-gray-700 pt-3'>
+								<div className='flex items-center justify-between'>
+									<div className='flex items-center gap-2'>
+										<div className='w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold'>
+											{officer.name.charAt(0).toUpperCase()}
+										</div>
+										<div>
+											<p className='text-sm font-medium text-gray-900 dark:text-white'>{officer.name}</p>
+											<p className='text-xs text-gray-400'>{officer.email}</p>
+										</div>
+									</div>
+									<button
+										onClick={() => handleDelete(officer._id, officer.name)}
+										className='text-xs text-red-500 hover:text-red-700 hover:underline'>
+										Remove
+									</button>
+								</div>
+							</div>
+						) : (
+							<div className='border-t border-gray-100 dark:border-gray-700 pt-3'>
+								<button
+									onClick={() => {
+										setFormData(prev => ({ ...prev, teamId: team._id }));
+										setShowForm(true);
+										window.scrollTo({ top: 0, behavior: 'smooth' });
+									}}
+									className='text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1'>
+									<Plus className='h-3.5 w-3.5' /> Assign Officer
+								</button>
+							</div>
+						)}
+					</div>
+				))}
 			</div>
 		</div>
 	);

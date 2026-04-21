@@ -50,16 +50,21 @@ const ManageTicket = () => {
 			setHistory(history || []);
 			setTeams(teamsRes.data.data);
 
+			// Auto-suggest team based on issue type if not already assigned
+			const suggestedTeam = teamsRes.data.data.find(
+				t => t.teamName === ticket.issueType
+			);
+
 			setFormData({
 				status: ticket.status,
 				priority: ticket.priority,
-				teamId: ticket.teamId?._id || "",
+				teamId: ticket.teamId?._id || suggestedTeam?._id || "",
 				assignedTo: ticket.assignedTo?._id || "",
 			});
 
-			// Load officers for the current team
-			if (ticket.teamId?._id) {
-				fetchOfficers(ticket.teamId._id);
+			const teamToLoad = ticket.teamId?._id || suggestedTeam?._id;
+			if (teamToLoad) {
+				fetchOfficers(teamToLoad);
 			}
 		} catch (error) {
 			toast.error("Failed to load ticket");
@@ -231,7 +236,7 @@ const ManageTicket = () => {
 							{user?.role === "admin" && (
 								<div>
 									<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-										Assign Team
+										Assign Department
 									</label>
 									<select
 										name='teamId'
@@ -240,9 +245,17 @@ const ManageTicket = () => {
 										className='input'>
 										<option value=''>— Unassigned —</option>
 										{teams.map((t) => (
-											<option key={t._id} value={t._id}>{t.teamName}</option>
+											<option key={t._id} value={t._id}>
+												{t.teamName}
+												{t.teamName === ticket?.issueType ? ' ✓ (matches issue type)' : ''}
+											</option>
 										))}
 									</select>
+									{formData.teamId && (
+										<p className='mt-1 text-xs text-gray-400'>
+											The assigned officer will be responsible for resolving this ticket
+										</p>
+									)}
 								</div>
 							)}
 
