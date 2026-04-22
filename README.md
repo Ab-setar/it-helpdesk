@@ -143,11 +143,7 @@ Password: Admin@1234
 
 ---
 
-## Deployment
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for full deployment guide.
-
----
 
 ## License
 
