@@ -19,16 +19,30 @@ const storage = multer.diskStorage({
     }
 });
 
+// Allowed MIME types whitelist
+const allowedMimeTypes = [
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/gif',
+    'application/pdf',
+    'application/msword',                                                            // .doc
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',      // .docx
+    'application/vnd.ms-excel',                                                      // .xls
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',            // .xlsx
+    'text/plain',                                                                    // .txt
+];
+
 // File filter
 const fileFilter = (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|xls|xlsx|txt/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    const allowedExtensions = /\.(jpeg|jpg|png|gif|pdf|doc|docx|xls|xlsx|txt)$/i;
+    const extValid = allowedExtensions.test(path.extname(file.originalname));
+    const mimeValid = allowedMimeTypes.includes(file.mimetype);
 
-    if (mimetype && extname) {
+    if (extValid && mimeValid) {
         return cb(null, true);
     } else {
-        cb(new Error('Only images, PDFs, and Office documents are allowed'));
+        cb(new Error('Invalid file type. Allowed: images, PDF, Word documents, Excel spreadsheets, and text files.'));
     }
 };
 

@@ -13,24 +13,26 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ success: false, message: 'No file uploaded' });
         }
-        
+
         const user = await User.findById(req.user._id);
-        
-        // Delete old avatar if not default
+
+        // Delete old avatar if not the default
         if (user.avatarPath && user.avatarPath !== 'assets/default_avatar.png') {
-            const oldPath = path.join(__dirname, '..', user.avatarPath);
-            if (fs.existsSync(oldPath)) {
-                fs.unlinkSync(oldPath);
+            const oldFilename = user.avatarPath.replace('/uploads/', '');
+            const oldFilePath = path.join(__dirname, '..', 'uploads', oldFilename);
+            if (fs.existsSync(oldFilePath)) {
+                fs.unlinkSync(oldFilePath);
             }
         }
-        
-        user.avatarPath = req.file.path;
+
+        // Store as a URL path, not a filesystem path
+        user.avatarPath = `/uploads/${req.file.filename}`;
         await user.save();
-        
+
         res.json({
             success: true,
             message: 'Avatar uploaded successfully',
-            data: { avatarPath: req.file.path }
+            data: { avatarPath: `/uploads/${req.file.filename}` }
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -41,21 +43,21 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
 router.post('/ticket/:id', protect, upload.array('attachments', 5), async (req, res) => {
     try {
         const ticket = await Ticket.findById(req.params.id);
-        
+
         if (!ticket) {
             return res.status(404).json({ success: false, message: 'Ticket not found' });
         }
-        
+
         const attachments = req.files.map(file => ({
             fileName: file.originalname,
-            filePath: file.path,
+            filePath: `/uploads/${file.filename}`,
             fileSize: file.size,
             mimeType: file.mimetype
         }));
-        
+
         ticket.attachments.push(...attachments);
         await ticket.save();
-        
+
         res.json({
             success: true,
             message: 'Attachments uploaded successfully',

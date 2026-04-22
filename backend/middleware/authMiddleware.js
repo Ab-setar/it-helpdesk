@@ -2,35 +2,33 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 const protect = async (req, res, next) => {
-    let token;
+    const authHeader = req.headers.authorization;
 
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-        try {
-            token = req.headers.authorization.split(' ')[1];
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            req.user = await User.findById(decoded.id).select('-password');
-            
-            if (!req.user) {
-                return res.status(401).json({
-                    success: false,
-                    message: 'User not found'
-                });
-            }
-            
-            next();
-        } catch (error) {
-            console.error(error);
-            return res.status(401).json({
-                success: false,
-                message: 'Not authorized, token failed'
-            });
-        }
-    }
-
-    if (!token) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({
             success: false,
             message: 'Not authorized, no token'
+        });
+    }
+
+    try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = await User.findById(decoded.id).select('-password');
+
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        next();
+    } catch (error) {
+        console.error(error);
+        return res.status(401).json({
+            success: false,
+            message: 'Not authorized, token failed'
         });
     }
 };
@@ -61,20 +59,20 @@ const checkTeamAccess = async (req, res, next) => {
     try {
         const Ticket = require('../models/Ticket');
         const ticket = await Ticket.findById(req.params.id);
-        
+
         if (!ticket) {
             return res.status(404).json({
                 success: false,
                 message: 'Ticket not found'
             });
         }
-        
+
         // Admin has full access
         if (req.user.role === 'admin') {
             req.ticket = ticket;
             return next();
         }
-        
+
         // Senior officer can only access tickets from their team
         if (req.user.role === 'senior_officer') {
             if (ticket.teamId && ticket.teamId.toString() === req.user.teamId?.toString()) {
@@ -86,7 +84,7 @@ const checkTeamAccess = async (req, res, next) => {
                 message: 'You can only access tickets from your team'
             });
         }
-        
+
         // Submitter can only access their own tickets
         if (req.user.role === 'submitter') {
             if (ticket.submitterId.toString() === req.user._id.toString()) {
@@ -98,7 +96,7 @@ const checkTeamAccess = async (req, res, next) => {
                 message: 'You can only access your own tickets'
             });
         }
-        
+
         res.status(403).json({
             success: false,
             message: 'Access denied'
